@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
-//apply plugin: 'com.novoda.bintray-release'
+apply plugin: 'com.jfrog.bintray'
 
 android {
     compileSdkVersion 30
@@ -37,6 +37,25 @@ android {
         viewBinding = true
         dataBinding = true
     }
+    // Because the components are created only during the afterEvaluate phase, you must
+    // configure your publications using the afterEvaluate() lifecycle method.
+    afterEvaluate {
+        publishing {
+            publications {
+                // Creates a Maven publication called "release".
+                release(MavenPublication) {
+                    // Applies the component for the release build variant.
+                    from components.release
+
+                    // You can then customize attributes of the publication as shown below.
+                    groupId = 'io.github.neverminddzt'
+                    artifactId = 'layerlayout'
+                    version = '1.0.0'
+                }
+            }
+        }
+
+    }
 }
 
 dependencies {
@@ -50,12 +69,4 @@ dependencies {
 
 }
 
-//publish {
-//    userOrg = 'nevermindzzt'
-//    repoName = 'maven'
-//    groupId = 'io.github.nevermindzzt'
-//    artifactId = 'layerlayout'
-//    publishVersion = '1.0.0'
-//    desc = 'layerlayout'
-//    website = 'https://github.com/NevermindZZT/LayerLayout'
-//}
+apply from: 'publish.gradle'

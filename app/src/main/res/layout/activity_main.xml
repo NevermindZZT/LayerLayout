@@ -15,7 +15,10 @@
     <com.letter.layerlayout.LayerLayout
         android:id="@+id/layer_layout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:duration="200"
+        app:enableGesture="true"
+        app:enableViewFilter="true">
 
         <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:layout_width="match_parent"
@@ -82,7 +85,7 @@
 
         <include
             android:id="@+id/bottom_layout"
-            layout="@layout/layout_main_left"
+            layout="@layout/layout_main_bottom"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginTop="200dp"

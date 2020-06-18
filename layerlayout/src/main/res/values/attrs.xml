@@ -2,5 +2,7 @@
 <resources>
     <declare-styleable name="LayerLayout">
         <attr name="android:duration" format="integer" />
+        <attr name="enableGesture" format="boolean" />
+        <attr name="enableViewFilter" format="boolean" />
     </declare-styleable>
 </resources>

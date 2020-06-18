@@ -3,22 +3,24 @@ package com.letter.layerlayout
 import android.animation.ObjectAnimator
 import android.animation.TimeInterpolator
 import android.content.Context
+import android.graphics.Color
 import android.graphics.Point
 import android.util.AttributeSet
-import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import androidx.core.animation.addListener
+import androidx.core.view.children
 import androidx.core.view.get
 import kotlin.math.abs
 import kotlin.math.min
 
 private const val TAG = "LayerLayout"
+private const val FILTER_VIEW_TAG = "filterView"
+private const val MIN_FLING_VELOCITY = 400;
 
 class LayerLayout @JvmOverloads
 constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, defStyleRes: Int=0)
@@ -26,12 +28,16 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
 
     private val viewList = mutableListOf<ViewInfo>()
 
-    var duration = 300L
+    var duration = 200L
     var interpolator = LinearInterpolator()
+    var enableGesture = true
+    var enableViewFilter = true
 
     private var isDown = false
     private var swipeDirection = Direction.RIGHT
     private var swipeCount = 0
+
+    private val filterView = View(context)
 
     private val onGestureListener = object : GestureDetector.OnGestureListener {
         override fun onShowPress(p0: MotionEvent?) = Unit
@@ -49,7 +55,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
                 when (swipeDirection) {
                     Direction.LEFT,
                     Direction.RIGHT -> {
-                        if (swipeCount < 10 || abs(p2) > 300) {
+                        if (swipeCount < 10 || abs(p2) > MIN_FLING_VELOCITY) {
                             openOrCloseView(viewInfo, viewInfo.direction == if (p2 > 0) Direction.LEFT else Direction.RIGHT)
                         } else {
                             openOrCloseView(viewInfo, abs(viewInfo.view.translationX) < viewInfo.view.width / 2)
@@ -57,12 +63,13 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
                     }
                     Direction.TOP,
                     Direction.BOTTOM -> {
-                        if (swipeCount < 10 || abs(p3) > 300) {
+                        if (swipeCount < 10 || abs(p3) > MIN_FLING_VELOCITY) {
                             openOrCloseView(viewInfo, viewInfo.direction == if (p3 < 0) Direction.BOTTOM else Direction.TOP)
                         } else {
                             openOrCloseView(viewInfo, abs(viewInfo.view.translationY) < viewInfo.view.height / 2)
                         }
                     }
+                    else -> Unit
                 }
             } else {
                 return false
@@ -99,6 +106,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
                     Direction.BOTTOM -> {
                         setViewTranslation(viewInfo, getViewTranslation(viewInfo) - p3)
                     }
+                    else -> Unit
                 }
                 return true
             }
@@ -114,9 +122,15 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
     init {
         val attrArray = context.obtainStyledAttributes(attrs, R.styleable.LayerLayout)
 
-        duration = attrArray.getInt(R.styleable.LayerLayout_android_duration, 500).toLong()
+        duration = attrArray.getInt(R.styleable.LayerLayout_android_duration, 200).toLong()
+        enableGesture = attrArray.getBoolean(R.styleable.LayerLayout_enableGesture, true)
+        enableViewFilter = attrArray.getBoolean(R.styleable.LayerLayout_enableViewFilter, true)
 
         attrArray.recycle()
+
+        filterView.setBackgroundColor(Color.parseColor("#80000000"))
+        filterView.alpha = 0f
+        filterView.tag = FILTER_VIEW_TAG
     }
 
     /**
@@ -125,7 +139,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
      * @return Boolean {@code true} 事件被处理 {@code false}事件未被处理
      */
     override fun onTouchEvent(event: MotionEvent?): Boolean {
-        return gestureDetector.onTouchEvent(event)
+        return if (enableGesture) gestureDetector.onTouchEvent(event) else false
     }
 
     /**
@@ -135,9 +149,9 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
     override fun addView(child: View?, index: Int, params: ViewGroup.LayoutParams?) {
         super.addView(child, index, params)
         if (child != null) {
-            viewList.add(ViewInfo(child, Direction.LEFT, Mode.NONE, viewList.size == 0))
+            viewList.add(ViewInfo(child, Direction.NONE, Mode.NONE, viewList.size == 0))
             if (viewList.size > 1) {
-                initViewState(child, Direction.LEFT, viewList.size == 0)
+                initViewState(child, Direction.NONE, viewList.size == 0)
             }
         }
     }
@@ -162,6 +176,17 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
         if (mainViewSize.x == 0) {
             mainViewSize.x = get(0).width
             mainViewSize.y = get(0).height
+        }
+        if (enableViewFilter) {
+            var hasFilter = false
+            children.forEach {
+                if (it.tag == FILTER_VIEW_TAG) {
+                    hasFilter = true
+                }
+            }
+            if (!hasFilter) {
+                addView(filterView, 1)
+            }
         }
     }
 
@@ -329,13 +354,14 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
                         interpolator: TimeInterpolator = this.interpolator) {
         val translation =
             when (viewInfo.direction) {
-            Direction.LEFT, Direction.RIGHT -> {
-                if (isOpen) 0f else viewInfo.view.width.toFloat()
+                Direction.LEFT, Direction.RIGHT -> {
+                    if (isOpen) 0f else viewInfo.view.width.toFloat()
+                }
+                Direction.TOP, Direction.BOTTOM -> {
+                    if (isOpen) 0f else viewInfo.view.height.toFloat()
+                }
+                else -> 0f
             }
-            Direction.TOP, Direction.BOTTOM -> {
-                if (isOpen) 0f else viewInfo.view.height.toFloat()
-            }
-        }
         val viewWrapper = ViewWrapper(viewInfo)
         ObjectAnimator.ofFloat(viewWrapper,
             "translation",
@@ -454,6 +480,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
             Direction.RIGHT -> viewInfo.view.translationX
             Direction.TOP -> -viewInfo.view.translationY
             Direction.BOTTOM -> viewInfo.view.translationY
+            else -> 0f
         }
 
     /**
@@ -462,17 +489,16 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
      * @param translation Float translation
      */
     private fun setViewTranslation(viewInfo: ViewInfo, translation: Float) {
-        var trans = when (viewInfo.direction) {
-            Direction.LEFT, Direction.RIGHT -> {
-                min(viewInfo.view.width.toFloat(), translation)
-            }
-            Direction.TOP, Direction.BOTTOM -> {
-                min(viewInfo.view.height.toFloat(), translation)
-            }
-        }
+        val maxTrans = when (viewInfo.direction) {
+            Direction.LEFT, Direction.RIGHT -> viewInfo.view.width
+            Direction.TOP, Direction.BOTTOM -> viewInfo.view.height
+            else -> 0
+        }.toFloat()
+        var trans = min(maxTrans, translation)
         if (trans < 0) {
             trans = 0f
         }
+        filterView.alpha = (maxTrans - trans) / maxTrans
         when (viewInfo.direction) {
             Direction.LEFT -> {
                 viewInfo.view.translationX = -trans
@@ -528,6 +554,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
                     else -> Unit
                 }
             }
+            else -> Unit
         }
     }
 
@@ -537,7 +564,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
      * @constructor 构造器
      */
     enum class Direction(private val value: Int) {
-        LEFT(0), RIGHT(1), TOP(2), BOTTOM(3);
+        NONE(-1), LEFT(0), RIGHT(1), TOP(2), BOTTOM(3);
 
         companion object {
             /**
