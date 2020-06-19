@@ -43,8 +43,6 @@ class MainActivity : AppCompatActivity(), ViewPresenter
             it.presenter = this
         }
         binding.navView.setNavigationItemSelectedListener(this)
-//        binding.layerLayout.setViewDirectionById(R.id.left_layout, LayerLayout.Direction.BOTTOM)
-//        binding.layerLayout.setViewModeById(R.id.left_layout, LayerLayout.Mode.CENTER)
     }
 
     override fun onClick(view: View?) {

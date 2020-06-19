@@ -20,7 +20,7 @@ import kotlin.math.min
 
 private const val TAG = "LayerLayout"
 private const val FILTER_VIEW_TAG = "filterView"
-private const val MIN_FLING_VELOCITY = 400;
+private const val MIN_FLING_VELOCITY = 400
 
 class LayerLayout @JvmOverloads
 constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, defStyleRes: Int=0)
@@ -38,83 +38,10 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
     private var swipeCount = 0
 
     private val filterView = View(context)
+    private val gestureView = View(context)
 
-    private val onGestureListener = object : GestureDetector.OnGestureListener {
-        override fun onShowPress(p0: MotionEvent?) = Unit
+    private val onGestureListener = GestureListener()
 
-        override fun onSingleTapUp(p0: MotionEvent?) = false
-
-        override fun onDown(p0: MotionEvent?): Boolean {
-            swipeCount = 0
-            return true
-        }
-
-        override fun onFling(p0: MotionEvent?, p1: MotionEvent?, p2: Float, p3: Float): Boolean {
-            val viewInfo = getSwipedViewInfo(swipeDirection)
-            if (viewInfo != null) {
-                when (swipeDirection) {
-                    Direction.LEFT,
-                    Direction.RIGHT -> {
-                        if (swipeCount < 10 || abs(p2) > MIN_FLING_VELOCITY) {
-                            openOrCloseView(viewInfo, viewInfo.direction == if (p2 > 0) Direction.LEFT else Direction.RIGHT)
-                        } else {
-                            openOrCloseView(viewInfo, abs(viewInfo.view.translationX) < viewInfo.view.width / 2)
-                        }
-                    }
-                    Direction.TOP,
-                    Direction.BOTTOM -> {
-                        if (swipeCount < 10 || abs(p3) > MIN_FLING_VELOCITY) {
-                            openOrCloseView(viewInfo, viewInfo.direction == if (p3 < 0) Direction.BOTTOM else Direction.TOP)
-                        } else {
-                            openOrCloseView(viewInfo, abs(viewInfo.view.translationY) < viewInfo.view.height / 2)
-                        }
-                    }
-                    else -> Unit
-                }
-            } else {
-                return false
-            }
-            isDown = false
-            return true
-        }
-
-        override fun onScroll(p0: MotionEvent?, p1: MotionEvent?, p2: Float, p3: Float) : Boolean {
-            swipeCount++
-            if (!isDown) {
-                isDown = true
-                val openedViewInfo = getOpenedViewInfo()
-                swipeDirection =
-                    openedViewInfo?.direction
-                        ?: if (abs(p2) >= abs((p3))) {
-                            if (p2 < 0) Direction.LEFT else Direction.RIGHT
-                        } else {
-                            if (p3 < 0) Direction.TOP else Direction.BOTTOM
-                        }
-            }
-            val viewInfo = getSwipedViewInfo(swipeDirection)
-            if (viewInfo != null) {
-                when (swipeDirection) {
-                    Direction.LEFT -> {
-                        setViewTranslation(viewInfo, getViewTranslation(viewInfo) + p2)
-                    }
-                    Direction.RIGHT -> {
-                        setViewTranslation(viewInfo, getViewTranslation(viewInfo) - p2)
-                    }
-                    Direction.TOP -> {
-                        setViewTranslation(viewInfo, getViewTranslation(viewInfo) + p3)
-                    }
-                    Direction.BOTTOM -> {
-                        setViewTranslation(viewInfo, getViewTranslation(viewInfo) - p3)
-                    }
-                    else -> Unit
-                }
-                return true
-            }
-            return false
-        }
-
-        override fun onLongPress(p0: MotionEvent?) = Unit
-    }
     val gestureDetector = GestureDetector(context, onGestureListener)
 
     private val mainViewSize = Point()
@@ -139,7 +66,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
      * @return Boolean {@code true} 事件被处理 {@code false}事件未被处理
      */
     override fun onTouchEvent(event: MotionEvent?): Boolean {
-        return if (enableGesture) gestureDetector.onTouchEvent(event) else false
+        return if (enableGesture) gestureDetector.onTouchEvent(event) else super.onTouchEvent(event)
     }
 
     /**
@@ -470,6 +397,24 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
     }
 
     /**
+     * 打开所有视图
+     */
+    fun openAll() {
+        for (i in 0 until viewList.size) {
+            openView(i)
+        }
+    }
+
+    /**
+     * 关闭所有视图
+     */
+    fun closeAll() {
+        for (i in 0 until viewList.size) {
+            closeView(i)
+        }
+    }
+
+    /**
      * 获取view translation
      * @param viewInfo ViewInfo view信息
      * @return Float translation
@@ -499,6 +444,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
             trans = 0f
         }
         filterView.alpha = (maxTrans - trans) / maxTrans
+        filterView.visibility = if (filterView.alpha == 0f) View.GONE else View.VISIBLE
         when (viewInfo.direction) {
             Direction.LEFT -> {
                 viewInfo.view.translationX = -trans
@@ -635,6 +581,83 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
         }
 
         fun getTranslation() = getViewTranslation(viewInfo)
+    }
+
+    open inner class GestureListener: GestureDetector.OnGestureListener {
+        override fun onShowPress(p0: MotionEvent?) = Unit
+
+        override fun onSingleTapUp(p0: MotionEvent?) = false
+
+        override fun onDown(p0: MotionEvent?): Boolean {
+            swipeCount = 0
+            return true
+        }
+
+        override fun onFling(p0: MotionEvent?, p1: MotionEvent?, p2: Float, p3: Float): Boolean {
+            val viewInfo = getSwipedViewInfo(swipeDirection)
+            if (viewInfo != null) {
+                when (swipeDirection) {
+                    Direction.LEFT,
+                    Direction.RIGHT -> {
+                        if (swipeCount < 10 || abs(p2) > MIN_FLING_VELOCITY) {
+                            openOrCloseView(viewInfo, viewInfo.direction == if (p2 > 0) Direction.LEFT else Direction.RIGHT)
+                        } else {
+                            openOrCloseView(viewInfo, abs(viewInfo.view.translationX) < viewInfo.view.width / 2)
+                        }
+                    }
+                    Direction.TOP,
+                    Direction.BOTTOM -> {
+                        if (swipeCount < 10 || abs(p3) > MIN_FLING_VELOCITY) {
+                            openOrCloseView(viewInfo, viewInfo.direction == if (p3 < 0) Direction.BOTTOM else Direction.TOP)
+                        } else {
+                            openOrCloseView(viewInfo, abs(viewInfo.view.translationY) < viewInfo.view.height / 2)
+                        }
+                    }
+                    else -> Unit
+                }
+            } else {
+                return false
+            }
+            isDown = false
+            return true
+        }
+
+        override fun onScroll(p0: MotionEvent?, p1: MotionEvent?, p2: Float, p3: Float) : Boolean {
+            swipeCount++
+            if (!isDown) {
+                isDown = true
+                val openedViewInfo = getOpenedViewInfo()
+                swipeDirection =
+                    openedViewInfo?.direction
+                        ?: if (abs(p2) >= abs((p3))) {
+                            if (p2 < 0) Direction.LEFT else Direction.RIGHT
+                        } else {
+                            if (p3 < 0) Direction.TOP else Direction.BOTTOM
+                        }
+            }
+            val viewInfo = getSwipedViewInfo(swipeDirection)
+            if (viewInfo != null) {
+                when (swipeDirection) {
+                    Direction.LEFT -> {
+                        setViewTranslation(viewInfo, getViewTranslation(viewInfo) + p2)
+                    }
+                    Direction.RIGHT -> {
+                        setViewTranslation(viewInfo, getViewTranslation(viewInfo) - p2)
+                    }
+                    Direction.TOP -> {
+                        setViewTranslation(viewInfo, getViewTranslation(viewInfo) + p3)
+                    }
+                    Direction.BOTTOM -> {
+                        setViewTranslation(viewInfo, getViewTranslation(viewInfo) - p3)
+                    }
+                    else -> Unit
+                }
+                return true
+            }
+            return false
+        }
+
+        override fun onLongPress(p0: MotionEvent?) = Unit
     }
 }
 
