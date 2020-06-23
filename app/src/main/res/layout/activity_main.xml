@@ -69,6 +69,84 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/textView3" />
 
+                <androidx.cardview.widget.CardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="0dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <com.letter.layerlayout.LayerLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
+
+                        <androidx.constraintlayout.widget.ConstraintLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="8dp">
+
+                            <TextView
+                                android:id="@+id/textView4"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Content"
+                                android:textSize="24sp"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent" />
+
+                            <TextView
+                                android:id="@+id/textView5"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="swipe to open menu"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toBottomOf="@+id/textView4" />
+                        </androidx.constraintlayout.widget.ConstraintLayout>
+
+                        <androidx.constraintlayout.widget.ConstraintLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:layout_gravity="end"
+                            app:direction="@{Direction.RIGHT}"
+                            app:mode="@{Mode.ABSOLUTE}" >
+
+                            <TextView
+                                android:id="@+id/textView7"
+                                android:layout_width="wrap_content"
+                                android:layout_height="0dp"
+                                android:background="#E91E63"
+                                android:gravity="center"
+                                android:padding="8dp"
+                                android:text="Delete"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent" />
+
+                            <TextView
+                                android:id="@+id/close_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="0dp"
+                                android:background="#03A9F4"
+                                android:gravity="center"
+                                android:padding="8dp"
+                                android:text="Close"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toEndOf="@+id/textView7"
+                                app:layout_constraintTop_toTopOf="parent" />
+                        </androidx.constraintlayout.widget.ConstraintLayout>
+
+                    </com.letter.layerlayout.LayerLayout>
+
+                </androidx.cardview.widget.CardView>
+
             </androidx.constraintlayout.widget.ConstraintLayout>
 
         </androidx.coordinatorlayout.widget.CoordinatorLayout>
@@ -83,7 +161,8 @@
             app:headerLayout="@layout/layout_main_drawer_header"
             app:menu="@menu/menu_main_drawer"
             app:direction="@{Direction.LEFT}"
-            app:mode="@{Mode.ABSOLUTE}"/>
+            app:mode="@{Mode.ABSOLUTE}"
+            tools:visibility="gone" />
 
         <include
             android:id="@+id/bottom_layout"
@@ -92,7 +171,8 @@
             android:layout_height="match_parent"
             android:layout_marginTop="200dp"
             app:direction="@{Direction.BOTTOM}"
-            app:mode="@{Mode.COLLAPSE}"/>
+            app:mode="@{Mode.COLLAPSE}"
+            tools:visibility="gone" />
 
     </com.letter.layerlayout.LayerLayout>
 

@@ -4,61 +4,95 @@ apply plugin: 'com.jfrog.bintray'
 version '1.0.0'
 group 'io.github.nevermindzzt'
 
+final String GROUP_ID = "io.github.nevermindzzt"
 
-// Because the components are created only during the afterEvaluate phase, you must
-// configure your publications using the afterEvaluate() lifecycle method.
-afterEvaluate {
+final String VERSION = "1.0.0"
 
-    publishing {
-        publications {
-            Production(MavenPublication) {
-                artifact("$buildDir/outputs/aar/layerlayout-release.aar")
-                groupId 'io.github.nevermindzzt'
-                artifactId 'layerlayout'
-                version this.version
+final String DESCRIPTION = "a layer layout"
+final String GITHUB_URL = "https://github.com/NevermindZZT/LayerLayout"
 
-                pom.withXml {
-                    def dependenciesNode = asNode().getAt('dependencies')[0] ?: asNode().appendNode('dependencies')
+// Create the POM configuration - required for jCenter uploading
+def pomConfig = {
+    licenses {
+        license {
+            name "MIT License"
+            url "https://opensource.org/licenses/MIT"
+            distribution "repo"
+        }
+    }
+}
 
-                    // Iterate over the implementation dependencies (we don't want the test ones), adding a <dependency> node for each
-                    configurations.implementation.allDependencies.each {
-                        // Ensure dependencies such as fileTree are not included in the pom.
-                        if (it.name != 'unspecified') {
-                            def dependencyNode = dependenciesNode.appendNode('dependency')
-                            dependencyNode.appendNode('groupId', it.group)
-                            dependencyNode.appendNode('artifactId', it.name)
-                            dependencyNode.appendNode('version', it.version)
-                        }
-                    }
-                }
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from "$buildDir/javadoc"
+}
+
+
+// Create the publication with the pom configuration:
+publishing {
+    publications {
+        Alerter(MavenPublication) {
+            groupId GROUP_ID
+            version VERSION
+            artifactId project.getName()
+
+            //from components.android
+            artifact sourcesJar
+            artifact javadocJar
+
+            // Tell maven to prepare the generated "*.aar" file for publishing
+            artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
+
+            pom.withXml {
+                def root = asNode()
+                root.appendNode('description', DESCRIPTION)
+                root.appendNode('name', project.getName())
+                root.appendNode('url', GITHUB_URL)
+                root.children().last() + pomConfig
             }
         }
     }
+}
 
-    bintray {
-        Properties properties = new Properties()
-        properties.load(project.rootProject.file('local.properties').newDataInputStream())
-        user = properties.getProperty('bintray_user')
-        key = properties.getProperty('bintray_api_key')
-        publications = ['Production']
-        configurations = ['archives']
-        override = true
-        pkg {
-            repo = 'maven'
-            name = 'layerlayout'
-            description = "layerlayout"
-            publish = true
-            publicDownloadNumbers = true
-            licenses = ['MIT']
-            vcsUrl = 'https://github.com/NevermindZZT/LayerLayout'
-            dryRun = true
-            version {
-                name = this.version
-                desc = "${this.version}"
-                released = new Date()
-                vcsTag = this.version
-                attributes = ['gradle-plugin': 'com.use.less:com.use.less.gradle:gradle-useless-plugin']
-            }
+//BinTray configuration - credentials stored in user's gradle.properties
+bintray {
+    user = getBinTrayUser()
+    key = getBinTrayKey()
+
+    publications = ['Alerter']
+
+    pkg {
+        repo = 'maven'
+        name = project.getName()
+        desc = DESCRIPTION
+        vcsUrl = GITHUB_URL + '.git'
+        websiteUrl = GITHUB_URL
+        issueTrackerUrl = GITHUB_URL + '/issues'
+        licenses = ['MIT']
+        publish = true
+
+        version {
+            name = VERSION // Version name i.e. "1.0"
+            desc = DESCRIPTION
+            vcsTag = VERSION
+            released = new Date()
         }
     }
+}
+
+def final getBinTrayUser() {
+    Properties properties = new Properties()
+    properties.load(project.rootProject.file('local.properties').newDataInputStream())
+    return properties.getProperty('bintray_user')
+}
+
+def final getBinTrayKey() {
+    Properties properties = new Properties()
+    properties.load(project.rootProject.file('local.properties').newDataInputStream())
+    return properties.getProperty('bintray_api_key')
 }

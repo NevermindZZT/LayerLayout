@@ -22,6 +22,28 @@ private const val TAG = "LayerLayout"
 private const val FILTER_VIEW_TAG = "filterView"
 private const val MIN_FLING_VELOCITY = 400
 
+/**
+ * LayerLayout
+ * Android 层级布局
+ *
+ * @property viewList MutableList<ViewInfo> 子视图信息列表
+ * @property duration Long 视图动画时长
+ * @property interpolator LinearInterpolator 视图动画插值器
+ * @property enableGesture Boolean 是否启用手势
+ * @property enableViewFilter Boolean 是否启用主视图遮罩
+ * @property isDown Boolean 触摸状态
+ * @property swipeDirection Direction 滑动方向
+ * @property swipeCount Int 滑动技术
+ * @property filterView View 遮罩View
+ * @property gestureView View 手势View
+ * @property onGestureListener GestureListener 手势监听
+ * @property gestureDetector GestureDetector 手势Detector
+ * @property mainViewSize Point 主视图大小
+ * @constructor 构造器
+ *
+ * @author Letter(nevermindzzt@gmail.com)
+ * @since 1.0.0
+ */
 class LayerLayout @JvmOverloads
 constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, defStyleRes: Int=0)
     : FrameLayout(context, attrs, defStyleAttr, defStyleRes) {
@@ -31,7 +53,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
     var duration = 200L
     var interpolator = LinearInterpolator()
     var enableGesture = true
-    var enableViewFilter = true
+    var enableViewFilter = false
 
     private var isDown = false
     private var swipeDirection = Direction.RIGHT
@@ -51,7 +73,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
 
         duration = attrArray.getInt(R.styleable.LayerLayout_android_duration, 200).toLong()
         enableGesture = attrArray.getBoolean(R.styleable.LayerLayout_enableGesture, true)
-        enableViewFilter = attrArray.getBoolean(R.styleable.LayerLayout_enableViewFilter, true)
+        enableViewFilter = attrArray.getBoolean(R.styleable.LayerLayout_enableViewFilter, false)
 
         attrArray.recycle()
 
@@ -112,6 +134,8 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
                 }
             }
             if (!hasFilter) {
+                val layoutParams = ViewGroup.LayoutParams(this.width, this.height)
+                filterView.layoutParams = layoutParams
                 addView(filterView, 1)
             }
         }
@@ -590,6 +614,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
 
         override fun onDown(p0: MotionEvent?): Boolean {
             swipeCount = 0
+            isDown = false
             return true
         }
 

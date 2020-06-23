@@ -31,6 +31,8 @@ class MainActivity : AppCompatActivity(), ViewPresenter
 
         setSupportActionBar(binding.toolbar)
         initBinding()
+        binding.layerLayout.setViewDirectionById(R.id.nav_view, LayerLayout.Direction.LEFT)
+        binding.layerLayout.setViewModeById(R.id.nav_view, LayerLayout.Mode.NONE)
     }
 
     private fun initBinding() {
