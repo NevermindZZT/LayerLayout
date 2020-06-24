@@ -36,7 +36,7 @@ task javadocJar(type: Jar) {
 // Create the publication with the pom configuration:
 publishing {
     publications {
-        Alerter(MavenPublication) {
+        Release(MavenPublication) {
             groupId GROUP_ID
             version VERSION
             artifactId project.getName()
@@ -64,7 +64,7 @@ bintray {
     user = getBinTrayUser()
     key = getBinTrayKey()
 
-    publications = ['Alerter']
+    publications = ['Release']
 
     pkg {
         repo = 'maven'

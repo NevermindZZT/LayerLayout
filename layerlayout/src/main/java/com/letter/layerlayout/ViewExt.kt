@@ -11,7 +11,7 @@ var View.direction: LayerLayout.Direction
         if (parent is LayerLayout) {
             (parent as LayerLayout).getViewDirection(this)
         } else {
-            LayerLayout.Direction.LEFT
+            LayerLayout.Direction.NONE
         }
     set(value) {
         if (parent is LayerLayout) {

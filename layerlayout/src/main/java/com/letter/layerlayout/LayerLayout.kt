@@ -23,6 +23,15 @@ private const val FILTER_VIEW_TAG = "filterView"
 private const val MIN_FLING_VELOCITY = 400
 
 /**
+ * 滑动距离改变回调
+ * @param parent LayerLayout 父布局
+ * @param mainView View 主视图
+ * @param swipedView View 滑动视图
+ * @param process Float 滑动进程(0.0-1.0) 0.0表示视图完全未打开 1.0表示完全打开
+ */
+typealias SwipedProcessCallback = ((parent: LayerLayout, mainView: View, swipedView: View, process: Float) -> Unit)?
+
+/**
  * LayerLayout
  * Android 层级布局
  *
@@ -31,12 +40,8 @@ private const val MIN_FLING_VELOCITY = 400
  * @property interpolator LinearInterpolator 视图动画插值器
  * @property enableGesture Boolean 是否启用手势
  * @property enableViewFilter Boolean 是否启用主视图遮罩
- * @property isDown Boolean 触摸状态
- * @property swipeDirection Direction 滑动方向
- * @property swipeCount Int 滑动技术
+ * @property swipedProcessCallback SwipedProcessCallback? 视图滑动回调
  * @property filterView View 遮罩View
- * @property gestureView View 手势View
- * @property onGestureListener GestureListener 手势监听
  * @property gestureDetector GestureDetector 手势Detector
  * @property mainViewSize Point 主视图大小
  * @constructor 构造器
@@ -55,16 +60,12 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
     var enableGesture = true
     var enableViewFilter = false
 
-    private var isDown = false
-    private var swipeDirection = Direction.RIGHT
-    private var swipeCount = 0
+    var swipedProcessCallback: SwipedProcessCallback = null
 
     private val filterView = View(context)
-    private val gestureView = View(context)
 
-    private val onGestureListener = GestureListener()
-
-    val gestureDetector = GestureDetector(context, onGestureListener)
+    val gestureDetector = GestureDetector(context, GestureListener(this))
+    private val filterGestureDetector = GestureDetector(context, GestureListener(filterView))
 
     private val mainViewSize = Point()
 
@@ -80,6 +81,10 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
         filterView.setBackgroundColor(Color.parseColor("#80000000"))
         filterView.alpha = 0f
         filterView.tag = FILTER_VIEW_TAG
+
+        filterView.setOnTouchListener { _, motionEvent ->
+            filterGestureDetector.onTouchEvent(motionEvent)
+        }
     }
 
     /**
@@ -526,6 +531,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
             }
             else -> Unit
         }
+        swipedProcessCallback?.invoke(this, get(0), viewInfo.view, (maxTrans - trans) / maxTrans)
     }
 
     /**
@@ -598,7 +604,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
      * @property viewInfo ViewInfo viewInfo
      * @constructor 构造器
      */
-    inner class ViewWrapper(val viewInfo: ViewInfo) {
+    inner class ViewWrapper(private val viewInfo: ViewInfo) {
 
         fun setTranslation(translation: Float) {
             setViewTranslation(viewInfo, translation)
@@ -607,10 +613,30 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
         fun getTranslation() = getViewTranslation(viewInfo)
     }
 
-    open inner class GestureListener: GestureDetector.OnGestureListener {
+    /**
+     * 手势监听
+     * @property view View? view
+     * @property isDown Boolean 按下
+     * @property swipeDirection Direction 滑动方向
+     * @property swipeCount Int 滑动计数
+     * @constructor 构造器
+     */
+    open inner class GestureListener(private val view: View? = null): GestureDetector.OnGestureListener {
+
+        private var isDown = false
+        private var swipeDirection = Direction.RIGHT
+        private var swipeCount = 0
+
         override fun onShowPress(p0: MotionEvent?) = Unit
 
-        override fun onSingleTapUp(p0: MotionEvent?) = false
+        override fun onSingleTapUp(p0: MotionEvent?) =
+            when (view) {
+                filterView -> {
+                    closeAll()
+                    true
+                }
+                else -> false
+            }
 
         override fun onDown(p0: MotionEvent?): Boolean {
             swipeCount = 0
@@ -625,17 +651,21 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
                     Direction.LEFT,
                     Direction.RIGHT -> {
                         if (swipeCount < 10 || abs(p2) > MIN_FLING_VELOCITY) {
-                            openOrCloseView(viewInfo, viewInfo.direction == if (p2 > 0) Direction.LEFT else Direction.RIGHT)
+                            openOrCloseView(viewInfo,
+                                viewInfo.direction == if (p2 > 0) Direction.LEFT else Direction.RIGHT)
                         } else {
-                            openOrCloseView(viewInfo, abs(viewInfo.view.translationX) < viewInfo.view.width / 2)
+                            openOrCloseView(viewInfo,
+                                abs(viewInfo.view.translationX) < viewInfo.view.width / 2)
                         }
                     }
                     Direction.TOP,
                     Direction.BOTTOM -> {
                         if (swipeCount < 10 || abs(p3) > MIN_FLING_VELOCITY) {
-                            openOrCloseView(viewInfo, viewInfo.direction == if (p3 < 0) Direction.BOTTOM else Direction.TOP)
+                            openOrCloseView(viewInfo,
+                                viewInfo.direction == if (p3 < 0) Direction.BOTTOM else Direction.TOP)
                         } else {
-                            openOrCloseView(viewInfo, abs(viewInfo.view.translationY) < viewInfo.view.height / 2)
+                            openOrCloseView(viewInfo,
+                                abs(viewInfo.view.translationY) < viewInfo.view.height / 2)
                         }
                     }
                     else -> Unit

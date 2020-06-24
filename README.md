@@ -181,10 +181,10 @@ android {
 
 | 模式          | 说明                                           | 效果                                   |
 | ------------- | ---------------------------------------------- | -------------------------------------- |
-| Mode.NONE     | 主视图不做任何动作，保持原来的位置             | ![absolute](doc/img/mode_none.gif)     |
-| Mode.CENTER   | 主视图根据子视图打开方向移动，同时保持居中对齐 | ![absolute](doc/img/mode_center.gif)   |
+| Mode.NONE     | 主视图不做任何动作，保持原来的位置             | ![none](doc/img/mode_none.gif)         |
+| Mode.CENTER   | 主视图根据子视图打开方向移动，同时保持居中对齐 | ![center](doc/img/mode_center.gif)     |
 | Mode.ABSOLUTE | 主视图根据子视图打开方向移动                   | ![absolute](doc/img/mode_absolute.gif) |
-| Mode.COLLAPSE | 主视图根据子视图移动的距离，调整大小           | ![absolute](doc/img/mode_collapse.gif) |
+| Mode.COLLAPSE | 主视图根据子视图移动的距离，调整大小           | ![collapse](doc/img/mode_collapse.gif) |
 
 ### LayerLayout属性
 

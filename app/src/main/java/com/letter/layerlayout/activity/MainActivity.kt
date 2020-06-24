@@ -1,5 +1,6 @@
 package com.letter.layerlayout.activity
 
+import android.content.toast
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -11,7 +12,6 @@ import com.letter.layerlayout.LayerLayout
 import com.letter.layerlayout.R
 import com.letter.layerlayout.databinding.ActivityMainBinding
 import com.letter.presenter.ViewPresenter
-import kotlinx.android.synthetic.main.activity_main.view.*
 
 private const val TAG = "MainActivity"
 
@@ -45,6 +45,18 @@ class MainActivity : AppCompatActivity(), ViewPresenter
             it.presenter = this
         }
         binding.navView.setNavigationItemSelectedListener(this)
+        binding.layerLayout.swipedProcessCallback = {
+            parent, mainView, swipedView, process ->
+            when (swipedView.id) {
+                R.id.nav_view -> {
+                    swipedView.scaleX = process / 10 + 0.9f
+                    swipedView.scaleY = process / 10 + 0.9f
+                }
+            }
+        }
+//        binding.cardItem.setOnTouchListener { _, motionEvent ->
+//            if (binding.cardLayout.onTouchEvent(motionEvent)) true else binding.cardItem.onTouchEvent(motionEvent)
+//        }
     }
 
     override fun onClick(view: View?) {
@@ -54,6 +66,7 @@ class MainActivity : AppCompatActivity(), ViewPresenter
                 binding.layerLayout.closeViewById(R.id.bottom_layout)
                 Log.d(TAG, "close left layout")
             }
+            R.id.card_item -> toast("card item clicked")
         }
     }
 
