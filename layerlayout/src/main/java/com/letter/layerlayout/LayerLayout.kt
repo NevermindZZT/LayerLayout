@@ -6,6 +6,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Point
 import android.util.AttributeSet
+import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
@@ -64,10 +65,18 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
 
     private val filterView = View(context)
 
-    val gestureDetector = GestureDetector(context, GestureListener(this))
-    private val filterGestureDetector = GestureDetector(context, GestureListener(filterView))
+    val gestureDetector = GestureDetector(context, GestureListener())
 
     private val mainViewSize = Point()
+
+    private var lastMotionX = 0f
+    private var lastMotionY = 0f
+
+    private var swiped = false
+    private var childSwiped = false
+    private var filterViewTouched = false
+
+    private var activeViewGroup: ViewGroup? = null
 
     init {
         val attrArray = context.obtainStyledAttributes(attrs, R.styleable.LayerLayout)
@@ -83,7 +92,10 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
         filterView.tag = FILTER_VIEW_TAG
 
         filterView.setOnTouchListener { _, motionEvent ->
-            filterGestureDetector.onTouchEvent(motionEvent)
+            filterViewTouched = true
+            val resume = this.onTouchEvent(motionEvent)
+            filterViewTouched = false
+            resume
         }
     }
 
@@ -93,7 +105,75 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
      * @return Boolean {@code true} 事件被处理 {@code false}事件未被处理
      */
     override fun onTouchEvent(event: MotionEvent?): Boolean {
-        return if (enableGesture) gestureDetector.onTouchEvent(event) else super.onTouchEvent(event)
+        return if (enableGesture) {
+            gestureDetector.onTouchEvent(event)
+        } else {
+            super.onTouchEvent(event)
+        }
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent?): Boolean {
+        return if (onInterceptTouchEvent(event)) {
+            onTouchEvent(event)
+        } else {
+            super.dispatchTouchEvent(event)
+        }
+    }
+
+    override fun onInterceptTouchEvent(event: MotionEvent?): Boolean {
+        var resume  = false
+
+        when (event?.action) {
+            MotionEvent.ACTION_DOWN -> {
+                lastMotionX = event.rawX
+                lastMotionY = event.rawY
+                resume = false
+                childSwiped = false
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val deltaX = event.rawX - lastMotionX
+                val deltaY = event.rawY - lastMotionY
+
+                val openedViewInfo = getOpenedViewInfo()
+
+                if (openedViewInfo == null) {
+                    for (child in children.iterator()) {
+                        if ((child is ViewGroup && child.dispatchTouchEvent(event)) || childSwiped) {
+                            activeViewGroup = child as ViewGroup
+                            Log.d(TAG, "intercept by child")
+                            childSwiped = true
+                            return true
+                        }
+                    }
+                }
+
+                if (swiped) {
+                    resume = true
+                } else if (abs(deltaX) > 10 || abs(deltaY) > 10) {
+                    val direction = if (abs(deltaX) > abs(deltaY)) {
+                        if (deltaX > 0) Direction.LEFT else Direction.RIGHT
+                    } else {
+                        if (deltaY > 0) Direction.TOP else Direction.BOTTOM
+                    }
+                    resume = if (openedViewInfo?.direction == Direction.getReverse(direction)) {
+                        true
+                    } else {
+                        getSwipedViewInfo(direction) != null
+                    }
+                }
+            }
+            MotionEvent.ACTION_UP -> {
+                resume = if (childSwiped && activeViewGroup != null) {
+                    activeViewGroup?.dispatchTouchEvent(event) !!
+                } else {
+                    swiped
+                }
+                childSwiped = false
+            }
+        }
+        Log.d(TAG, "onInterceptTouchEvent: $resume")
+        return resume
+//        return super.onInterceptTouchEvent(event)
     }
 
     /**
@@ -556,6 +636,15 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
                 }
                 return LEFT
             }
+
+            fun getReverse(direction: Direction) =
+                when (direction) {
+                    LEFT -> RIGHT
+                    RIGHT -> RIGHT
+                    TOP -> BOTTOM
+                    BOTTOM -> TOP
+                    else -> NONE
+                }
         }
     }
 
@@ -621,7 +710,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
      * @property swipeCount Int 滑动计数
      * @constructor 构造器
      */
-    open inner class GestureListener(private val view: View? = null): GestureDetector.OnGestureListener {
+    open inner class GestureListener: GestureDetector.OnGestureListener {
 
         private var isDown = false
         private var swipeDirection = Direction.RIGHT
@@ -630,21 +719,23 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
         override fun onShowPress(p0: MotionEvent?) = Unit
 
         override fun onSingleTapUp(p0: MotionEvent?) =
-            when (view) {
-                filterView -> {
-                    closeAll()
-                    true
-                }
-                else -> false
+            if (filterViewTouched) {
+                closeAll()
+                true
+            } else {
+                false
             }
 
         override fun onDown(p0: MotionEvent?): Boolean {
+            Log.d(TAG, "onDown")
             swipeCount = 0
             isDown = false
             return true
         }
 
         override fun onFling(p0: MotionEvent?, p1: MotionEvent?, p2: Float, p3: Float): Boolean {
+            Log.d(TAG, "onFling")
+            swiped = false
             val viewInfo = getSwipedViewInfo(swipeDirection)
             if (viewInfo != null) {
                 when (swipeDirection) {
@@ -678,6 +769,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
         }
 
         override fun onScroll(p0: MotionEvent?, p1: MotionEvent?, p2: Float, p3: Float) : Boolean {
+            Log.d(TAG, "onScroll")
             swipeCount++
             if (!isDown) {
                 isDown = true
@@ -707,6 +799,7 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
                     }
                     else -> Unit
                 }
+                swiped = true
                 return true
             }
             return false
