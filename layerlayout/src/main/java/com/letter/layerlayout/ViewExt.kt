@@ -36,6 +36,18 @@ var View.mode: LayerLayout.Mode
     }
 
 /**
+ * 判断View是否被打开
+ * @receiver View view
+ * @return Boolean {@code true}打开 {@code false}关闭
+ */
+fun View.isOpened() =
+    if (parent is LayerLayout) {
+        (parent as LayerLayout).isViewOpened(this)
+    } else {
+        false
+    }
+
+/**
  * 设置view打开方向
  * @param view View view
  * @param direction Int 打开方向

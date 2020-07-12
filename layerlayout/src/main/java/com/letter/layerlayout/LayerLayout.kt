@@ -506,6 +506,42 @@ constructor(context: Context, attrs: AttributeSet?=null, defStyleAttr: Int=0, de
     }
 
     /**
+     * 判断试图是否被打开
+     * @param view View
+     * @return Boolean {@code true}打开 {@code false}关闭
+     */
+    fun isViewOpened(view: View) : Boolean {
+        viewList.forEach {
+            if (it.view == view) {
+                return it.isOpen
+            }
+        }
+        return false
+    }
+
+    /**
+     * 判断驶入是否被打开
+     * @param index Int 索引
+     * @return Boolean {@code true}打开 {@code false}关闭
+     */
+    fun isViewOpened(index: Int) =
+        if (index < viewList.size) viewList[index].isOpen else false
+
+    /**
+     * 判断驶入是否被打开
+     * @param id Int view id
+     * @return Boolean {@code true}打开 {@code false}关闭
+     */
+    fun isViewOpenedById(id: Int) : Boolean {
+        viewList.forEach {
+            if (it.view.id == id) {
+                return it.isOpen
+            }
+        }
+        return false
+    }
+
+    /**
      * 打开所有视图
      */
     fun openAll() {

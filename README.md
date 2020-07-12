@@ -1,7 +1,7 @@
 # LayerLayout
 
-![version](https://img.shields.io/badge/version-1.0.0-brightgreen.svg)
-![build](https://img.shields.io/badge/build-2020.06.23-brightgreen.svg)
+![version](https://img.shields.io/badge/version-1.0.1-brightgreen.svg)
+![build](https://img.shields.io/badge/build-2020.07.12-brightgreen.svg)
 ![license](https://img.shields.io/badge/license-MIT-brightgreen.svg)
 
 Android layer layout
